@@ -13,11 +13,11 @@ Sous Windows, une image copiée (dans Word, un PDF, une page web) reste « coinc
 ## Fonctionnalités
 
 - **Images** : zoom fluide à la molette ou au pincement, déplacement en glissant, poignées de coin pour redimensionner, plein écran, taille réelle.
-- **Redimensionner pour de vrai** : nouvelle taille en pixels (curseur, préréglages, proportions verrouillées), puis recopier ou enregistrer l'image.
+- **Redimensionner pour de vrai** : nouvelle taille en pixels (curseur, préréglages, proportions verrouillées), puis recopier, enregistrer ou ajouter à l'historique.
 - **Contenu Word / web** : aperçu avec mise en forme, texte brut, code HTML, et rendu image quand Word le fournit.
 - **Texte** : compteur de caractères, mots et lignes, taille du texte ajustable, JSON formaté, aperçu des couleurs (`#0078FF`).
 - **Fichiers** : collez ou glissez-déposez — aperçu des vidéos, de l'audio, des PDF et des fichiers texte.
-- **Historique** local des 60 derniers éléments (stocké dans votre navigateur uniquement).
+- **Historique** local des 60 derniers éléments.
 - Mode clair / sombre / système, 5 thèmes de couleur, mobile et desktop.
 
 ## Raccourcis
@@ -31,6 +31,7 @@ Sous Windows, une image copiée (dans Word, un PDF, une page web) reste « coinc
 | `F` | Plein écran |
 | `R` | Redimensionner l'image |
 | `↑` / `↓` | Élément précédent / suivant |
+| `Échap` | Fermer la fenêtre ou quitter le plein écran |
 
 ## Confidentialité
 
@@ -38,7 +39,26 @@ Tout se passe dans votre navigateur. Rien n'est envoyé sur Internet : l'histori
 
 ## Technique
 
-Un seul fichier `index.html` (HTML, CSS, JavaScript), sans build. Tailwind CSS et Lucide via CDN. Publié avec GitHub Pages.
+- **Next.js 16** (App Router) en **export statique**, **React 19**, **TypeScript** strict, **Tailwind CSS 4** compilé au build, icônes `lucide-react`.
+- La visionneuse d'image (`src/lib/viewerEngine.ts`) pilote le zoom et le déplacement hors de React, dans une boucle `requestAnimationFrame` : aucun re-rendu pendant un geste.
+- Déployé automatiquement sur GitHub Pages par GitHub Actions à chaque push sur `main`.
+
+```
+src/
+  app/          layout (thème sans flash), page, styles et tokens
+  components/   un composant par bloc d'interface
+  hooks/        useTheme
+  lib/          logique pure : import du presse-papiers, images, stockage, visionneuse
+source/         version d'origine en un seul fichier HTML
+```
+
+## Lancer en local
+
+```bash
+npm install
+npm run dev        # http://localhost:3000
+npm run build      # site statique dans out/
+```
 
 ---
 
