@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Presse-Vue</title>
+<script>
+(function(){
+  var s = {mode:'system', preset:'ocean'};
+  try { s = Object.assign(s, JSON.parse(localStorage.getItem('ui_theme') || '{}')); } catch(e) {}
+  var dark = s.mode === 'dark' || (s.mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  if (dark) document.documentElement.classList.add('dark');
+  document.documentElement.dataset.preset = s.preset || 'ocean';
+})();
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: {
+    fontFamily: { sans: ['Inter','system-ui','sans-serif'], mono: ['JetBrains Mono','ui-monospace','Consolas','monospace'] },
+    colors: { slate: { 850: '#151e2e', 950: '#0a0f18' } },
+    borderRadius: { '3xl':'24px', '4xl':'32px', '5xl':'48px' }
+  } }
+};
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* VOICE: outil d'atelier calme et précis — on colle, on voit en grand.
+   IDEA: une table lumineuse (light table) où l'on pose ce qu'on a copié.
+   PICTURE: le contenu collé lui-même, en grand, sur un plateau de verre.
+   COLOUR and TYPE: tokens II (bleu #0078FF), verre dépoli, Inter 900 serré.
+   LAYOUT: historique à gauche (desktop) / bande défilante (mobile), visionneuse au centre. */
+:root{
+  --primary:#0078FF; --primary-strong:#0056D6; --primary-rgb:0,120,255;
+  --gradient-primary:linear-gradient(135deg,#00C6FF 0%,#0078FF 100%);
+  --shadow-primary:0 10px 20px rgba(0,120,255,.30);
+  --gradient-accent:linear-gradient(135deg,#9b2cfa 0%,#2c62fa 100%);
+  --shadow-accent:0 10px 20px rgba(155,44,250,.30);
+  --success:#18c480; --danger:#FF2B5E; --warning:#FFC800;
+  --orb1:rgba(59,130,246,.30); --orb2:rgba(6,182,212,.30); --orb3:rgba(56,189,248,.20);
+  --primary-soft:rgba(var(--primary-rgb),.12);
+}
+[data-preset="nature"]{--primary:#18c480;--primary-strong:#0f9e66;--primary-rgb:24,196,128;--gradient-primary:linear-gradient(135deg,#5EE6B0 0%,#0FA66B 100%);--shadow-primary:0 10px 20px rgba(24,196,128,.30);--orb1:rgba(16,185,129,.30);--orb2:rgba(20,184,166,.30);--orb3:rgba(132,204,22,.20)}
+[data-preset="crepuscule"]{--primary:#FF6B00;--primary-strong:#d95a00;--primary-rgb:255,107,0;--gradient-primary:linear-gradient(135deg,#FFA62B 0%,#FF6B00 100%);--shadow-primary:0 10px 20px rgba(255,107,0,.30);--orb1:rgba(249,115,22,.30);--orb2:rgba(244,63,94,.30);--orb3:rgba(245,158,11,.20)}
+[data-preset="royal"]{--primary:#9b2cfa;--primary-strong:#7a14d6;--primary-rgb:155,44,250;--gradient-primary:linear-gradient(135deg,#9b2cfa 0%,#2c62fa 100%);--shadow-primary:0 10px 20px rgba(155,44,250,.30);--orb1:rgba(139,92,246,.30);--orb2:rgba(99,102,241,.30);--orb3:rgba(217,70,239,.20)}
+[data-preset="mono"]{--primary:#334155;--primary-strong:#1e293b;--primary-rgb:51,65,85;--gradient-primary:linear-gradient(135deg,#64748b 0%,#1e293b 100%);--shadow-primary:0 10px 20px rgba(30,41,59,.30);--orb1:rgba(100,116,139,.25);--orb2:rgba(107,114,128,.25);--orb3:rgba(113,113,122,.18)}
+.dark{--primary-soft:rgba(var(--primary-rgb),.20)}
+.dark[data-preset="mono"]{--primary:#94a3b8;--primary-rgb:148,163,184}
+
+html,body{height:100%}
+body{font-family:Inter,system-ui,sans-serif;background:#f8f9fa;-webkit-tap-highlight-color:transparent}
+.dark body{background:#0a0f18}
+.tabular{font-variant-numeric:tabular-nums}
+
+/* Fond signature */
+.orb{position:absolute;border-radius:9999px;contain:strict}
+.orb1{top:-30vw;left:-25vw;width:80vw;height:80vw;background:radial-gradient(circle,var(--orb1) 0%,transparent 68%);transform-origin:60% 40%;animation:spin 25s linear infinite}
+.orb2{bottom:-30vw;right:-25vw;width:70vw;height:70vw;background:radial-gradient(circle,var(--orb2) 0%,transparent 68%);transform-origin:40% 60%;animation:spin 20s linear infinite reverse}
+.orb3{top:20%;left:22%;width:56vw;height:56vw;background:radial-gradient(circle,var(--orb3) 0%,transparent 68%);animation:pulse-glow 6s ease-in-out infinite}
+.dark .orb{opacity:.5}
+/* Quand un élément est affiché, le fond s'immobilise : le verre n'a plus à être recalculé à chaque image */
+.viewing .orb{animation-play-state:paused}
+.grain{opacity:.035;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+@media (max-width:767px){.orb3{display:none}}
+
+/* Verre */
+.glass-nav{background:rgba(255,255,255,.6);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border-bottom:1px solid rgba(255,255,255,.5)}
+.dark .glass-nav{background:rgba(15,23,42,.55);border-bottom-color:rgba(255,255,255,.06)}
+.glass-panel{background:rgba(255,255,255,.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.8);box-shadow:0 10px 40px -10px rgba(0,0,0,.05)}
+.dark .glass-panel{background:rgba(21,30,46,.6);border-color:rgba(255,255,255,.07);box-shadow:0 10px 40px -10px rgba(0,0,0,.4)}
+.glass-card{background:rgba(255,255,255,.5);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.7);box-shadow:0 8px 30px rgba(0,0,0,.04)}
+.dark .glass-card{background:rgba(30,41,59,.5);border-color:rgba(255,255,255,.06)}
+.btn-glass{background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#0f172a}
+.btn-glass:hover{background:rgba(255,255,255,.8)}
+.dark .btn-glass{background:rgba(51,65,85,.45);border-color:rgba(255,255,255,.08);color:#fff}
+.dark .btn-glass:hover{background:rgba(71,85,105,.6)}
+.btn-primary{background:var(--gradient-primary);box-shadow:var(--shadow-primary);color:#fff}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-press{transition:transform .2s cubic-bezier(.34,1.56,.64,1),filter .2s,background .2s,box-shadow .2s}
+.btn-press:active{transform:scale(.96);filter:brightness(.95)}
+.field-zone{background:rgba(255,255,255,.4);border:2px dashed rgba(var(--primary-rgb),.35);box-shadow:inset 0 2px 10px rgba(0,0,0,.02)}
+.dark .field-zone{background:rgba(15,23,42,.4)}
+.field-zone:focus{outline:none;border-style:solid;box-shadow:0 0 0 4px rgba(var(--primary-rgb),.18)}
+.field-zone:empty:before{content:attr(data-placeholder);color:#64748b;font-weight:700;pointer-events:none}
+.active-item{background:var(--primary-soft);box-shadow:inset 0 0 0 2px rgba(var(--primary-rgb),.45)}
+.text-primary{color:var(--primary-strong)} .dark .text-primary{color:#fff}
+.ring-primary:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(var(--primary-rgb),.35)}
+button:focus-visible,a:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(var(--primary-rgb),.4)}
+
+/* Tuiles TV grid */
+.tile{position:relative;overflow:hidden;color:#fff;border-radius:28px;border:1px solid rgba(255,255,255,.25)}
+.tile .grid-pat{position:absolute;inset:0;opacity:.18;background-image:linear-gradient(rgba(255,255,255,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.6) 1px,transparent 1px);background-size:18px 18px}
+.tile .tile-orb{position:absolute;width:120px;height:120px;right:-30px;bottom:-40px;border-radius:9999px;background:rgba(255,255,255,.35);filter:blur(30px)}
+
+/* Visionneuse */
+.checker{background-color:#fff;background-image:conic-gradient(#e2e8f0 25%,transparent 0 50%,#e2e8f0 0 75%,transparent 0);background-size:22px 22px}
+.dark .checker{background-color:#1e293b;background-image:conic-gradient(#273449 25%,transparent 0 50%,#273449 0 75%,transparent 0)}
+.stage{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.stage.dragging{cursor:grabbing}
+.stage img{position:absolute;left:0;top:0;transform-origin:0 0;max-width:none;box-shadow:0 20px 60px rgba(0,0,0,.18);transition:opacity .25s}
+.stage img.moving{will-change:transform}
+/* Cadre de redimensionnement */
+.rz-frame{position:absolute;left:0;top:0;pointer-events:none;outline:2px solid transparent;outline-offset:0;border-radius:2px;transition:outline-color .2s}
+.stage:hover .rz-frame,.rz-frame.active{outline-color:rgba(var(--primary-rgb),.65)}
+.rz-h{position:absolute;width:18px;height:18px;border-radius:7px;background:#fff;border:3px solid var(--primary);box-shadow:0 3px 10px rgba(0,0,0,.25);pointer-events:auto;opacity:0;transition:opacity .2s,transform .2s cubic-bezier(.34,1.56,.64,1);touch-action:none;z-index:2}
+.rz-h:after{content:"";position:absolute;inset:-14px}
+.rz-h:hover,.rz-h.on{transform:scale(1.25)}
+.stage:hover .rz-h,.rz-frame.active .rz-h{opacity:1}
+.rz-h[data-h=nw]{left:-9px;top:-9px;cursor:nwse-resize}.rz-h[data-h=se]{right:-9px;bottom:-9px;cursor:nwse-resize}
+.rz-h[data-h=ne]{right:-9px;top:-9px;cursor:nesw-resize}.rz-h[data-h=sw]{left:-9px;bottom:-9px;cursor:nesw-resize}
+@media (pointer:coarse){.rz-h{opacity:1;width:22px;height:22px}.rz-frame{outline-color:rgba(var(--primary-rgb),.45)}}
+.size-tag{opacity:0;transform:translateY(-6px);transition:opacity .2s,transform .2s;pointer-events:none}
+.size-tag.on{opacity:1;transform:none}
+input[type=range].rng{-webkit-appearance:none;appearance:none;height:10px;border-radius:999px;background:linear-gradient(90deg,var(--primary) var(--p,25%),rgba(148,163,184,.3) var(--p,25%));outline:none}
+input[type=range].rng::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:10px;background:#fff;border:3px solid var(--primary);box-shadow:var(--shadow-primary);cursor:grab}
+input[type=range].rng::-moz-range-thumb{width:24px;height:24px;border-radius:10px;background:#fff;border:3px solid var(--primary);box-shadow:var(--shadow-primary);cursor:grab}
+.num{background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.7);box-shadow:inset 0 2px 10px rgba(0,0,0,.03)}
+.dark .num{background:rgba(15,23,42,.45);border-color:rgba(255,255,255,.08)}
+.num:focus{outline:none;box-shadow:0 0 0 3px rgba(var(--primary-rgb),.25)}
+.spin{animation:spin 1s linear infinite}
+.is-fs{position:fixed!important;inset:0!important;z-index:60!important;border-radius:0!important;background:rgba(2,6,23,.94)!important}
+.is-fs.checker{background-image:none}
+
+/* Skeleton & animations */
+.skel{position:relative;overflow:hidden;background:rgba(203,213,225,.55)}
+.dark .skel{background:rgba(51,65,85,.55)}
+.skel:after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:shimmer 2s infinite}
+@keyframes shimmer{100%{transform:translateX(100%)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse-glow{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes slide-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes pop-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+.anim-float{animation:float 6s ease-in-out infinite}
+.anim-slide{animation:slide-up .45s cubic-bezier(.16,1,.3,1) both}
+.anim-pop{animation:pop-in .35s cubic-bezier(.34,1.56,.64,1) both}
+.scroll-x{overflow-x:auto;scrollbar-width:none}.scroll-x::-webkit-scrollbar{display:none}
+.thin-scroll{scrollbar-width:thin;scrollbar-color:rgba(100,116,139,.35) transparent}
+@media (pointer:fine){.coarse-only{display:none!important}}
+@media (prefers-reduced-motion:reduce){
+  .orb,.anim-float,.skel:after{animation:none!important}
+  .anim-slide,.anim-pop{animation-duration:.01s!important}
+}
+.safe-b{padding-bottom:max(1rem,env(safe-area-inset-bottom))}
+.safe-x{padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right))}
+</style>
+</head>
+<body class="text-slate-900 dark:text-white antialiased overflow-hidden">
+
+<!-- Fond animé -->
+<div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
+  <div class="absolute inset-0 bg-gradient-to-br from-slate-100 via-white to-slate-50 opacity-90 dark:from-slate-950 dark:via-[#0d1422] dark:to-slate-950"></div>
+  <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+  <div class="absolute inset-0 grain"></div>
+</div>
+
+<div class="h-[100dvh] flex flex-col">
+  <!-- En-tête -->
+  <header class="glass-nav shrink-0 safe-x" style="padding-top:env(safe-area-inset-top)">
+    <div class="h-16 lg:h-20 flex items-center gap-3 lg:px-2">
+      <div class="w-11 h-11 rounded-2xl btn-primary flex items-center justify-center shrink-0"><i data-lucide="clipboard-paste" class="w-5 h-5"></i></div>
+      <div class="min-w-0 flex-1">
+        <h1 class="text-xl lg:text-2xl font-black tracking-tighter leading-none">Presse-Vue</h1>
+        <p class="hidden sm:block text-[10px] font-black uppercase tracking-widest opacity-60 mt-1">Visionneuse de presse-papiers</p>
+      </div>
+      <button id="hdrPaste" class="hidden btn-primary btn-press rounded-full h-11 px-4 sm:px-6 font-black text-sm tracking-wide items-center gap-2" aria-label="Coller depuis le presse-papiers">
+        <i data-lucide="clipboard-paste" class="w-4 h-4"></i><span class="hidden sm:inline">Coller</span>
+        <kbd class="hidden lg:inline text-[10px] font-black bg-white/20 rounded-lg px-1.5 py-0.5">Ctrl V</kbd>
+      </button>
+      <button id="btnSettings" class="btn-glass btn-press w-11 h-11 rounded-2xl flex items-center justify-center" aria-label="Apparence">
+        <i data-lucide="palette" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Corps -->
+  <div class="flex-1 min-h-0 flex gap-5 p-3 sm:p-4 lg:p-6 safe-x">
+    <!-- Historique desktop -->
+    <aside class="hidden lg:flex w-80 shrink-0 flex-col glass-panel rounded-[32px] overflow-hidden">
+      <div class="px-6 pt-6 pb-4 flex items-center gap-2">
+        <i data-lucide="history" class="w-4 h-4 opacity-60"></i>
+        <span class="text-[11px] font-black uppercase tracking-widest opacity-70">Historique</span>
+        <span id="histCount" class="tabular text-[11px] font-black px-2 py-0.5 rounded-lg bg-slate-900/5 dark:bg-white/10">0</span>
+        <div class="flex-1"></div>
+        <button id="btnClear" class="btn-glass btn-press w-11 h-11 rounded-2xl flex items-center justify-center" aria-label="Vider l'historique" title="Vider l'historique">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div id="histList" class="flex-1 min-h-0 overflow-y-auto thin-scroll px-3 pb-4 space-y-1.5"></div>
+    </aside>
+
+    <!-- Colonne principale -->
+    <main class="flex-1 min-w-0 flex flex-col gap-3">
+      <!-- Historique mobile -->
+      <div id="histStrip" class="lg:hidden shrink-0 scroll-x flex gap-2 pb-1"></div>
+      <section id="viewer" class="flex-1 min-h-0 flex flex-col glass-panel rounded-[28px] lg:rounded-[40px] overflow-hidden"></section>
+    </main>
+  </div>
+</div>
+
+<!-- Dépôt de fichier -->
+<div id="dropOverlay" class="hidden fixed inset-0 z-[70] items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+  <div class="glass-panel rounded-[40px] p-10 text-center anim-pop max-w-md w-full">
+    <div class="w-20 h-20 mx-auto rounded-[28px] btn-primary flex items-center justify-center anim-float"><i data-lucide="upload" class="w-9 h-9"></i></div>
+    <p class="mt-6 text-3xl font-black tracking-tighter">Déposez pour afficher</p>
+    <p class="mt-2 text-sm font-medium text-slate-500 dark:text-slate-300">Images, vidéos, PDF, texte… tout fichier.</p>
+  </div>
+</div>
+
+<!-- Modales -->
+<div id="modalRoot"></div>
+<!-- Toasts -->
+<div id="toasts" class="fixed z-[90] top-4 left-4 right-4 sm:left-auto sm:w-96 flex flex-col gap-2 pointer-events-none" style="top:max(1rem,env(safe-area-inset-top))"></div>
+
+<script>
+{
+/* ============ Utilitaires ============ */
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const icons = () => { try { lucide.createIcons(); } catch(e) {} };
+const framed = (() => { try { return window.self !== window.top; } catch(e) { return true; } })();
+const fmtBytes = b => { if (b == null) return ''; const u=['o','Ko','Mo','Go']; let i=0; while (b >= 1024 && i < u.length-1) { b/=1024; i++; } return (i ? b.toFixed(b<10?1:0) : b) + ' ' + u[i]; };
+const fmtNum = n => n.toLocaleString('fr-CA');
+const fmtAgo = t => { const s=(Date.now()-t)/1000; if (s<45) return 'à l\'instant'; if (s<3600) return 'il y a '+Math.round(s/60)+' min'; if (s<86400) return 'il y a '+Math.round(s/3600)+' h'; return new Date(t).toLocaleDateString('fr-CA',{day:'numeric',month:'short'}); };
+const stamp = () => { const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const extFor = mime => ({'image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/webp':'webp','image/svg+xml':'svg','image/bmp':'bmp','image/avif':'avif'}[mime] || (mime.split('/')[1]||'bin').split('+')[0]);
+
+async function makeThumb(blob, w, h) {
+  try {
+    const k = Math.min(1, 160 / Math.max(w, h));
+    const tw = Math.max(1, Math.round(w * k)), th = Math.max(1, Math.round(h * k));
+    const bmp = await createImageBitmap(blob, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'medium' });
+    const c = document.createElement('canvas'); c.width = tw; c.height = th;
+    c.getContext('2d').drawImage(bmp, 0, 0, tw, th); bmp.close && bmp.close();
+    return await new Promise(r => c.toBlob(r, 'image/webp', 0.85));
+  } catch(e) { return null; }
+}
+
+const KIND = {
+  image: { label:'Image',         icon:'image',     bg:'var(--gradient-primary)', sh:'var(--shadow-primary)' },
+  text:  { label:'Texte',         icon:'type',      bg:'var(--gradient-accent)',  sh:'var(--shadow-accent)' },
+  html:  { label:'Contenu riche', icon:'file-text', bg:'linear-gradient(135deg,#FFC800 0%,#FF5100 100%)', sh:'0 10px 20px rgba(255,81,0,.28)' },
+  file:  { label:'Fichier',       icon:'file',      bg:'linear-gradient(135deg,#34e3a0 0%,#0e9f6e 100%)', sh:'0 10px 20px rgba(24,196,128,.3)' }
+};
+
+/* ============ Toasts ============ */
+function toast(msg, type='success') {
+  const conf = { success:['check-circle-2','#18c480'], error:['alert-triangle','#FF2B5E'], info:['info','var(--primary)'] }[type];
+  const el = document.createElement('div');
+  el.className = 'pointer-events-auto glass-panel rounded-2xl px-4 py-3 flex items-start gap-3 anim-slide shadow-[0_15px_40px_rgba(0,0,0,0.08)]';
+  el.setAttribute('role','status');
+  el.innerHTML = `<i data-lucide="${conf[0]}" class="w-5 h-5 shrink-0 mt-0.5" style="color:${conf[1]}"></i><p class="text-sm font-bold leading-snug flex-1">${esc(msg)}</p>`;
+  $('#toasts').appendChild(el); icons();
+  setTimeout(() => { el.style.transition='opacity .3s, transform .3s'; el.style.opacity='0'; el.style.transform='translateY(-8px)'; setTimeout(()=>el.remove(),300); }, 4000);
+}
+
+/* ============ Modales ============ */
+function openModal(inner, onMount) {
+  const root = $('#modalRoot');
+  root.innerHTML = `<div class="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm" data-backdrop>
+      <div class="glass-panel w-full sm:max-w-md rounded-t-[32px] sm:rounded-[32px] p-6 sm:p-8 anim-pop safe-b" role="dialog" aria-modal="true">${inner}</div></div>`;
+  icons();
+  root.querySelector('[data-backdrop]').addEventListener('click', e => { if (e.target.dataset.backdrop !== undefined) closeModal(); });
+  onMount && onMount(root);
+}
+function closeModal(){ $('#modalRoot').innerHTML = ''; }
+function confirmBox({title, message, confirmLabel}) {
+  return new Promise(res => {
+    openModal(`<div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 border border-rose-200 dark:bg-rose-500/15 dark:border-rose-500/30 dark:text-rose-300 flex items-center justify-center shadow-inner"><i data-lucide="trash-2" class="w-6 h-6"></i></div>
+      <h3 class="mt-5 text-2xl font-black tracking-tight">${esc(title)}</h3>
+      <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">${esc(message)}</p>
+      <div class="mt-7 flex flex-col-reverse sm:flex-row gap-3">
+        <button data-no class="btn-glass btn-press flex-1 h-12 rounded-full font-black text-sm">Annuler</button>
+        <button data-yes class="btn-press flex-1 h-12 rounded-full font-black text-sm text-white" style="background:linear-gradient(135deg,#FF2B5E,#FF6B00);box-shadow:0 10px 20px rgba(255,43,94,.3)">${esc(confirmLabel)}</button>
+      </div>`, root => {
+      root.querySelector('[data-no]').onclick = () => { closeModal(); res(false); };
+      root.querySelector('[data-yes]').onclick = () => { closeModal(); res(true); };
+      root.querySelector('[data-yes]').focus();
+    });
+  });
+}
+
+/* ============ Thème ============ */
+const PRESETS = [
+  ['ocean','Océan','linear-gradient(135deg,#00C6FF,#0078FF)'],
+  ['nature','Nature','linear-gradient(135deg,#5EE6B0,#0FA66B)'],
+  ['crepuscule','Crépuscule','linear-gradient(135deg,#FFA62B,#FF6B00)'],
+  ['royal','Royal','linear-gradient(135deg,#9b2cfa,#2c62fa)'],
+  ['mono','Monochrome','linear-gradient(135deg,#64748b,#1e293b)']
+];
+let theme = { mode:'system', preset:'ocean' };
+try { theme = Object.assign(theme, JSON.parse(localStorage.getItem('ui_theme') || '{}')); } catch(e) {}
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+function applyTheme() {
+  const dark = theme.mode === 'dark' || (theme.mode === 'system' && mq.matches);
+  document.documentElement.classList.toggle('dark', dark);
+  document.documentElement.dataset.preset = theme.preset;
+  try { localStorage.setItem('ui_theme', JSON.stringify(theme)); } catch(e) {}
+}
+mq.addEventListener && mq.addEventListener('change', () => theme.mode === 'system' && applyTheme());
+function openSettings() {
+  const modes = [['light','Clair','sun'],['dark','Sombre','moon'],['system','Système','monitor']];
+  openModal(`<div class="flex items-center justify-between"><h3 class="text-2xl font-black tracking-tight">Apparence</h3>
+      <button data-close class="btn-glass btn-press w-11 h-11 rounded-2xl flex items-center justify-center" aria-label="Fermer"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+    <p class="mt-6 text-[11px] font-black uppercase tracking-widest opacity-70">Mode d'affichage</p>
+    <div class="mt-3 grid grid-cols-3 gap-2">${modes.map(([k,l,i]) => `<button data-mode="${k}" class="btn-press h-16 rounded-2xl flex flex-col items-center justify-center gap-1 font-black text-xs ${theme.mode===k?'active-item text-primary':'btn-glass'}"><i data-lucide="${i}" class="w-5 h-5"></i>${l}</button>`).join('')}</div>
+    <p class="mt-6 text-[11px] font-black uppercase tracking-widest opacity-70">Couleur</p>
+    <div class="mt-3 grid grid-cols-5 gap-2">${PRESETS.map(([k,l,g]) => `<button data-preset="${k}" class="btn-press flex flex-col items-center gap-1.5" aria-label="${l}">
+      <span class="w-full aspect-square rounded-2xl border-2 ${theme.preset===k?'border-slate-900 dark:border-white':'border-white/60'} flex items-center justify-center text-white" style="background:${g}">${theme.preset===k?'<i data-lucide="check" class="w-5 h-5"></i>':''}</span>
+      <span class="text-[10px] font-black truncate max-w-full">${l}</span></button>`).join('')}</div>`, root => {
+    root.querySelector('[data-close]').onclick = closeModal;
+    root.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { theme.mode = b.dataset.mode; applyTheme(); openSettings(); });
+    root.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => { theme.preset = b.dataset.preset; applyTheme(); openSettings(); });
+  });
+}
+
+/* ============ Stockage (IndexedDB, repli en mémoire) ============ */
+const DB = {
+  db: null,
+  open() { return new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open('presse-vue', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('items', { keyPath:'id' });
+      r.onsuccess = () => { this.db = r.result; res(); };
+      r.onerror = () => rej(r.error);
+    } catch(e) { rej(e); }
+  }); },
+  run(mode, fn) { return new Promise((res, rej) => {
+    if (!this.db) return res(null);
+    try { const st = this.db.transaction('items', mode).objectStore('items'); const q = fn(st); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); } catch(e) { rej(e); }
+  }); },
+  all() { return this.run('readonly', s => s.getAll()); },
+  put(it) { return this.run('readwrite', s => s.put(it)); },
+  del(id) { return this.run('readwrite', s => s.delete(id)); },
+  clear() { return this.run('readwrite', s => s.clear()); }
+};
+const MAX_ITEMS = 60;
+
+/* ============ État ============ */
+const state = { items:[], activeId:null, hist:'loading', htmlView:'preview', textSize:16, jsonPretty:false, fs:false };
+const urls = new Map();
+function urlFor(item, key='blob') { const k = item.id+':'+key; if (!urls.has(k) && item[key]) urls.set(k, URL.createObjectURL(item[key])); return urls.get(k); }
+function revoke(id) { for (const [k,u] of urls) if (k.startsWith(id+':')) { URL.revokeObjectURL(u); urls.delete(k); } }
+const active = () => state.items.find(i => i.id === state.activeId);
+
+async function loadHistory() {
+  state.hist = 'loading'; renderHistory();
+  try {
+    if (!DB.db) await DB.open();
+    const all = await DB.all();
+    state.items = (all || []).sort((a,b) => b.createdAt - a.createdAt);
+    state.hist = 'ready';
+  } catch(e) {
+    state.hist = 'error';
+  }
+  renderHistory();
+}
+
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+async function addItems(list, selectId) {
+  for (const it of list) {
+    state.items.unshift(it);
+    try { await DB.put(it); } catch(e) { /* reste en mémoire */ }
+  }
+  while (state.items.length > MAX_ITEMS) { const old = state.items.pop(); revoke(old.id); try { await DB.del(old.id); } catch(e) {} }
+  if (state.hist !== 'ready') state.hist = 'ready';
+  state.activeId = selectId || list[0].id;
+  renderHistory(); select(state.activeId);
+}
+
+function select(id) {
+  state.activeId = id; state.htmlView = 'preview'; state.jsonPretty = false; state.fs = false;
+  markActive(); renderViewer();
+}
+function markActive() {
+  document.querySelectorAll('#histList [data-id], #histStrip [data-id]').forEach(b => b.classList.toggle('active-item', b.dataset.id === state.activeId));
+  const cur = document.querySelector(`#histStrip [data-id="${state.activeId}"]`);
+  cur && cur.scrollIntoView({ block:'nearest', inline:'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+
+async function removeItem(id) {
+  const it = state.items.find(i => i.id === id); if (!it) return;
+  const ok = await confirmBox({ title:'Supprimer cet élément ?', message:`« ${titleOf(it)} » sera retiré de l'historique. Votre presse-papiers n'est pas touché.`, confirmLabel:'Supprimer' });
+  if (!ok) return;
+  const idx = state.items.indexOf(it);
+  state.items.splice(idx, 1); revoke(id);
+  try { await DB.del(id); } catch(e) {}
+  if (state.activeId === id) state.activeId = (state.items[idx] || state.items[idx-1] || {}).id || null;
+  renderHistory(); renderViewer();
+  toast('Élément supprimé');
+}
+
+async function clearAll() {
+  if (!state.items.length) return toast('L\'historique est déjà vide', 'info');
+  const ok = await confirmBox({ title:'Vider l\'historique ?', message:`Les ${state.items.length} éléments collés seront effacés de Presse-Vue. Votre presse-papiers n'est pas touché.`, confirmLabel:'Tout effacer' });
+  if (!ok) return;
+  state.items.forEach(i => revoke(i.id)); state.items = []; state.activeId = null;
+  try { await DB.clear(); } catch(e) {}
+  renderHistory(); renderViewer(); toast('Historique vidé');
+}
+
+/* ============ Lecture du presse-papiers ============ */
+function imageDims(blob) {
+  return new Promise(res => {
+    const u = URL.createObjectURL(blob), im = new Image();
+    const t = setTimeout(() => { URL.revokeObjectURL(u); res(null); }, 8000);
+    im.onload = () => { clearTimeout(t); URL.revokeObjectURL(u); res({ w: im.naturalWidth, h: im.naturalHeight }); };
+    im.onerror = () => { clearTimeout(t); URL.revokeObjectURL(u); res(null); };
+    im.src = u;
+  });
+}
+
+async function ingest({ files, html, text }) {
+  files = files || []; html = html || ''; text = text || '';
+  const hasText = text.trim().length > 0;
+  const imgFiles = files.filter(f => f.type.startsWith('image/'));
+  const otherFiles = files.filter(f => !f.type.startsWith('image/'));
+  const created = []; let pick = null;
+  const now = Date.now();
+
+  // 1) Texte / contenu riche
+  if (hasText && !(files.length && !html)) {
+    const latest = state.items[0];
+    if (latest && (latest.kind === 'text' || latest.kind === 'html') && latest.text === text && (latest.html||'') === html && !imgFiles.length) {
+      select(latest.id); return toast('Déjà affiché — c\'est le même contenu', 'info');
+    }
+    const it = { id:uid(), createdAt:now, kind: html ? 'html' : 'text', text, html: html || null };
+    if (html && imgFiles.length === 1 && !otherFiles.length) {   // Word/Excel : on garde aussi le rendu image
+      const d = await imageDims(imgFiles[0]);
+      if (d) { it.image = imgFiles[0]; it.iw = d.w; it.ih = d.h; it.thumb = await makeThumb(imgFiles[0], d.w, d.h); imgFiles.length = 0; }
+    }
+    created.push(it); pick = it.id;
+  } else if (!hasText && html && !files.length) {
+    created.push({ id:uid(), createdAt:now, kind:'html', text:'', html }); pick = created[0].id;
+  }
+
+  // 2) Images
+  for (const f of imgFiles) {
+    const d = await imageDims(f);
+    const latest = state.items[0];
+    if (d && latest && latest.kind === 'image' && latest.size === f.size && latest.w === d.w && latest.h === d.h && !created.length) {
+      select(latest.id); return toast('Déjà affichée — c\'est la même image', 'info');
+    }
+    const it = d ? { id:uid(), createdAt:now, kind:'image', blob:f, mime:f.type, size:f.size, w:d.w, h:d.h, name: f.name && f.name !== 'image.png' ? f.name : null }
+                 : { id:uid(), createdAt:now, kind:'file', blob:f, mime:f.type, size:f.size, name:f.name || 'image' };
+    if (d) it.thumb = await makeThumb(f, d.w, d.h);
+    created.push(it); if (!pick) pick = it.id;
+  }
+  // 3) Autres fichiers
+  for (const f of otherFiles) {
+    const it = { id:uid(), createdAt:now, kind:'file', blob:f, mime:f.type || 'application/octet-stream', size:f.size, name:f.name || 'fichier' };
+    created.push(it); if (!pick) pick = it.id;
+  }
+
+  if (!created.length) return toast('Le presse-papiers semble vide ou son contenu n\'est pas lisible par le navigateur.', 'error');
+  // Insérer dans l'ordre inverse pour que l'élément choisi soit en haut
+  const ordered = created.slice().sort((a,b) => (a.id === pick) - (b.id === pick));
+  await addItems(ordered, pick);
+  const sel = created.find(c => c.id === pick);
+  toast(`${KIND[sel.kind].label} collé${sel.kind==='image'?'e':''}${created.length>1?` (+${created.length-1} autre${created.length>2?'s':''})`:''}`);
+}
+
+function fromDataTransfer(dt) {
+  if (!dt) return;
+  const files = [...(dt.files || [])];
+  if (!files.length && dt.items) for (const it of dt.items) if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); }
+  return ingest({ files, html: dt.getData('text/html'), text: dt.getData('text/plain') });
+}
+
+async function pasteViaAPI() {
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.read) throw new Error('unsupported');
+    const items = await navigator.clipboard.read();
+    const files = []; let html = '', text = '';
+    for (const ci of items) for (const type of ci.types) {
+      const blob = await ci.getType(type);
+      if (type === 'text/html') html = await blob.text();
+      else if (type === 'text/plain') text = await blob.text();
+      else if (type.startsWith('image/')) files.push(new File([blob], 'image.' + extFor(type), { type }));
+    }
+    await ingest({ files, html, text });
+  } catch(e) {
+    const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+    toast(`Le navigateur bloque le bouton ici — appuyez simplement sur ${mac ? '⌘ + V' : 'Ctrl + V'}${matchMedia('(pointer:coarse)').matches ? ', ou touchez la zone de collage puis « Coller »' : ''}.`, 'info');
+  }
+}
+
+document.addEventListener('paste', e => {
+  e.preventDefault();
+  fromDataTransfer(e.clipboardData);
+  document.querySelectorAll('[data-pastezone]').forEach(z => { z.textContent = ''; z.blur(); });
+});
+document.addEventListener('input', e => { if (e.target.matches && e.target.matches('[data-pastezone]')) e.target.textContent = ''; });
+
+/* Glisser-déposer */
+let dragDepth = 0;
+const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+window.addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; $('#dropOverlay').classList.replace('hidden','flex'); });
+window.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--dragDepth <= 0) { dragDepth = 0; $('#dropOverlay').classList.replace('flex','hidden'); } });
+window.addEventListener('drop', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth = 0; $('#dropOverlay').classList.replace('flex','hidden'); fromDataTransfer(e.dataTransfer); });
+
+/* ============ Actions sur un élément ============ */
+function titleOf(it) {
+  if (it.kind === 'image') return it.name || `Image ${it.w} × ${it.h}`;
+  if (it.kind === 'file') return it.name;
+  const t = (it.text || '').trim().replace(/\s+/g,' ');
+  return t ? (t.length > 60 ? t.slice(0,60)+'…' : t) : 'Contenu HTML';
+}
+function metaOf(it) {
+  if (it.kind === 'image') return `${it.w} × ${it.h} px · ${fmtBytes(it.size)} · ${extFor(it.mime).toUpperCase()}`;
+  if (it.kind === 'file') return `${fmtBytes(it.size)} · ${it.mime || 'type inconnu'}`;
+  const t = it.text || ''; return `${fmtNum(t.length)} caractères · ${fmtNum((t.match(/\S+/g)||[]).length)} mots · ${fmtNum(t ? t.split(/\r\n|\r|\n/).length : 0)} lignes`;
+}
+
+async function toPng(blob) {
+  const bmp = await createImageBitmap(blob);
+  const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+  c.getContext('2d').drawImage(bmp, 0, 0);
+  return new Promise(r => c.toBlob(r, 'image/png'));
+}
+async function writeText(t) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch(e) {
+    const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch(_) {} ta.remove(); return ok;
+  }
+}
+async function copyItem(it) {
+  try {
+    if (it.kind === 'image' || (it.kind === 'html' && state.htmlView === 'image')) {
+      const src = it.kind === 'image' ? it.blob : it.image;
+      const png = src.type === 'image/png' ? src : await toPng(src);
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+      return toast('Image recopiée dans le presse-papiers');
+    }
+    if (it.kind === 'html' && it.html && window.ClipboardItem) {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([it.html], {type:'text/html'}), 'text/plain': new Blob([it.text||''], {type:'text/plain'}) })]);
+        return toast('Contenu recopié avec sa mise en forme');
+      } catch(e) { /* repli texte */ }
+    }
+    if (it.kind === 'file') throw new Error('file');
+    const t = it.kind === 'text' && state.jsonPretty ? prettyJson(it.text) : it.text;
+    if (await writeText(t)) toast('Texte recopié'); else throw new Error('copy');
+  } catch(e) {
+    toast(it.kind === 'file' ? 'Un fichier ne peut pas être recopié dans le presse-papiers.' : 'La copie est bloquée par le navigateur ici. Ouvrez Presse-Vue dans son propre onglet pour recopier.', 'error');
+  }
+}
+let dl = null, canDownload = !framed;
+const DL_EXT = ['gif','png','jpg','jpeg','webp','mp4','webm','mov','txt','json','md','docx','pptx','epub','csv','ttf','html','svg','pdf','xlsx','zip','fig'];
+async function downloadItem(it) {
+  let blob, name;
+  if (it.kind === 'image') { blob = it.blob; name = it.name || `presse-vue-${stamp()}.${extFor(it.mime)}`; }
+  else if (it.kind === 'file') { blob = it.blob; name = it.name; }
+  else if (it.kind === 'html' && state.htmlView === 'image' && it.image) { blob = it.image; name = `presse-vue-${stamp()}.${extFor(it.image.type)}`; }
+  else if (it.kind === 'html' && state.htmlView !== 'text') { blob = new Blob([it.html], {type:'text/html'}); name = `presse-vue-${stamp()}.html`; }
+  else { const t = state.jsonPretty ? prettyJson(it.text) : it.text; const isJson = state.jsonPretty || jsonOf(it.text) != null; blob = new Blob([t], {type:'text/plain;charset=utf-8'}); name = `presse-vue-${stamp()}.${isJson?'json':'txt'}`; }
+  if (dl) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    if (!DL_EXT.includes(ext) && (blob.type || '').startsWith('image/')) {
+      try { blob = await toPng(blob); name = name.replace(/\.[^.]*$/, '') + '.png'; } catch(e) {}
+    }
+    try { await dl.save({ filename: name, data: blob }); toast(`« ${name} » enregistré`); }
+    catch(err) {
+      const code = err && err.code;
+      if (code === 'declined') return;
+      if (code === 'rejected_extension' || code === 'extension_not_enabled') toast('Ce type de fichier ne peut pas être enregistré depuis cette fenêtre.', 'error');
+      else if (code === 'rate_limited') toast('Un enregistrement est déjà en attente — réessayez dans un instant.', 'info');
+      else toast('L\'enregistrement n\'est pas disponible ici.', 'error');
+    }
+    return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast(`Enregistrement de « ${name} »`);
+}
+function jsonOf(t) { const s = (t||'').trim(); if (!/^[\[{]/.test(s) || s.length > 5e6) return null; try { return JSON.parse(s); } catch(e) { return null; } }
+function prettyJson(t) { const j = jsonOf(t); return j == null ? t : JSON.stringify(j, null, 2); }
+
+/* ============ Rendu : historique ============ */
+function thumbHTML(it, size) {
+  const k = KIND[it.kind];
+  const img = it.thumb ? urlFor(it, 'thumb') : it.kind === 'image' ? urlFor(it) : (it.kind === 'html' && it.image ? urlFor(it, 'image') : (it.kind === 'file' && (it.mime||'').startsWith('image/') ? urlFor(it) : null));
+  if (img) return `<div class="${size} rounded-2xl overflow-hidden checker shrink-0 border border-white/70 dark:border-white/10"><img src="${img}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async"></div>`;
+  return `<div class="${size} rounded-2xl shrink-0 flex items-center justify-center text-white border border-white/30" style="background:${k.bg}"><i data-lucide="${fileIcon(it)}" class="w-5 h-5"></i></div>`;
+}
+function fileIcon(it) {
+  if (it.kind !== 'file') return KIND[it.kind].icon;
+  const m = it.mime || '';
+  if (m.startsWith('video/')) return 'film'; if (m.startsWith('audio/')) return 'music';
+  if (m.includes('pdf')) return 'file-text'; if (/zip|rar|7z|tar|gzip/.test(m)) return 'file-archive';
+  if (m.startsWith('text/') || /json|xml|javascript/.test(m)) return 'file-code';
+  return 'file';
+}
+function renderHistory() {
+  const list = $('#histList'), strip = $('#histStrip');
+  $('#histCount').textContent = state.items.length;
+  const pasteTile = `<div class="coarse-only relative w-16 h-16 shrink-0 rounded-2xl field-zone flex items-center justify-center">
+      <i data-lucide="clipboard-paste" class="w-5 h-5 absolute pointer-events-none" style="color:var(--primary)"></i>
+      <div data-pastezone contenteditable="true" aria-label="Zone de collage : touchez puis choisissez Coller" class="absolute inset-0 rounded-2xl text-transparent caret-transparent overflow-hidden"></div></div>`;
+
+  if (state.hist === 'loading') {
+    list.innerHTML = Array.from({length:6}, () => `<div class="flex items-center gap-3 p-2"><div class="skel w-12 h-12 rounded-2xl"></div><div class="flex-1 space-y-2"><div class="skel h-3 rounded-full w-3/4"></div><div class="skel h-2.5 rounded-full w-1/3"></div></div></div>`).join('');
+    strip.innerHTML = Array.from({length:5}, () => `<div class="skel w-16 h-16 rounded-2xl shrink-0"></div>`).join('');
+    return;
+  }
+  if (state.hist === 'error' && !state.items.length) {
+    list.innerHTML = `<div class="glass-card rounded-[28px] p-5 m-2 text-center">
+      <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-100 text-amber-600 border border-amber-200 dark:bg-amber-500/15 dark:border-amber-500/30 dark:text-amber-300 flex items-center justify-center shadow-inner"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
+      <p class="mt-3 text-sm font-bold">L'historique n'a pas pu être chargé.</p>
+      <p class="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">Vous pouvez quand même coller : les éléments resteront le temps de la visite.</p>
+      <button data-retry class="btn-glass btn-press mt-4 h-11 px-5 rounded-full font-black text-sm inline-flex items-center gap-2"><i data-lucide="refresh-cw" class="w-4 h-4"></i>Réessayer</button></div>`;
+    strip.innerHTML = pasteTile;
+    list.querySelector('[data-retry]').onclick = loadHistory;
+    icons(); return;
+  }
+  if (!state.items.length) {
+    list.innerHTML = `<div class="text-center px-6 py-10">
+      <div class="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center shadow-inner border border-white/70 dark:border-white/10" style="background:var(--primary-soft);color:var(--primary)"><i data-lucide="history" class="w-6 h-6"></i></div>
+      <p class="mt-4 text-sm font-bold">Rien pour l'instant</p>
+      <p class="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">Tout ce que vous collez apparaîtra ici pour y revenir plus tard.</p></div>`;
+    strip.innerHTML = pasteTile; icons(); return;
+  }
+  list.innerHTML = state.items.map(it => `<button data-id="${it.id}" class="w-full text-left flex items-center gap-3 p-2 rounded-[20px] btn-press min-h-[64px] ${it.id===state.activeId?'active-item':'hover:bg-white/60 dark:hover:bg-white/5'}">
+      ${thumbHTML(it, 'w-12 h-12')}
+      <span class="min-w-0 flex-1"><span class="block text-sm font-bold truncate">${esc(titleOf(it))}</span>
+      <span class="block text-[10px] font-black uppercase tracking-widest opacity-60 mt-0.5 truncate">${KIND[it.kind].label} · ${fmtAgo(it.createdAt)}</span></span></button>`).join('');
+  strip.innerHTML = pasteTile + state.items.map(it => `<button data-id="${it.id}" aria-label="${esc(titleOf(it))}" class="btn-press shrink-0 rounded-2xl p-0.5 ${it.id===state.activeId?'active-item':''}">${thumbHTML(it, 'w-[60px] h-[60px]')}</button>`).join('');
+  [list, strip].forEach(c => c.querySelectorAll('[data-id]').forEach(b => b.onclick = () => select(b.dataset.id)));
+  icons();
+}
+
+/* ============ Rendu : visionneuse ============ */
+const btnIcon = (act, icon, label, extra='') => `<button data-act="${act}" class="btn-glass btn-press h-11 min-w-[44px] px-3 rounded-2xl inline-flex items-center justify-center gap-2 font-black text-xs ${extra}" aria-label="${label}" title="${label}"><i data-lucide="${icon}" class="w-4 h-4"></i><span class="hidden xl:inline">${label}</span></button>`;
+
+function renderEmpty(v) {
+  $('#hdrPaste').classList.replace('flex','hidden');
+  const mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  const tiles = [
+    ['image','Images','Captures, photos, images de Word ou du web','var(--gradient-primary)','var(--shadow-primary)'],
+    ['type','Texte','Avec compteur, zoom et JSON formaté','var(--gradient-accent)','var(--shadow-accent)'],
+    ['file-text','Word & web','Mise en forme conservée','linear-gradient(135deg,#FFC800,#FF5100)','0 10px 20px rgba(255,81,0,.28)'],
+    ['file','Fichiers','Vidéo, audio, PDF, et plus','linear-gradient(135deg,#34e3a0,#0e9f6e)','0 10px 20px rgba(24,196,128,.3)']
+  ];
+  v.innerHTML = `<div class="flex-1 overflow-y-auto thin-scroll"><div class="min-h-full flex flex-col items-center justify-center text-center p-6 sm:p-10 anim-slide">
+    <div class="w-24 h-24 rounded-[32px] btn-primary flex items-center justify-center anim-float"><i data-lucide="clipboard-paste" class="w-11 h-11"></i></div>
+    <h2 class="mt-8 text-4xl sm:text-6xl font-black tracking-tighter leading-[1.02] drop-shadow-sm">Collez n'importe quoi.</h2>
+    <p class="mt-4 text-base sm:text-lg font-medium text-slate-600 dark:text-slate-300 max-w-xl">Une image copiée dans Word, une capture, du texte ou un fichier : appuyez sur
+      <kbd class="font-black text-slate-900 dark:text-white bg-white/70 dark:bg-white/10 border border-white/80 dark:border-white/10 rounded-lg px-2 py-0.5 shadow-sm">${mac?'⌘':'Ctrl'} + V</kbd> et on l'affiche en grand.</p>
+    <button data-act="paste" class="btn-primary btn-press mt-8 rounded-full px-10 sm:px-12 h-16 font-black text-lg sm:text-xl tracking-wide inline-flex items-center gap-3">
+      <i data-lucide="clipboard-paste" class="w-6 h-6"></i>Coller maintenant</button>
+    <div class="coarse-only mt-6 w-full max-w-sm">
+      <div data-pastezone contenteditable="true" data-placeholder="Touchez ici, puis « Coller »" aria-label="Zone de collage" class="field-zone rounded-2xl min-h-[64px] px-4 py-5 text-center text-sm caret-transparent"></div>
+    </div>
+    <p class="mt-5 text-xs font-bold text-slate-500 dark:text-slate-400 inline-flex items-center gap-2"><i data-lucide="upload" class="w-4 h-4"></i>Vous pouvez aussi glisser un fichier n'importe où sur la page.</p>
+    <div class="mt-10 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full max-w-4xl text-left">
+      ${tiles.map(([i,t,d,bg,sh]) => `<div class="tile p-5 min-h-[132px]" style="background:${bg};box-shadow:${sh}"><div class="grid-pat"></div><div class="tile-orb"></div>
+        <div class="relative w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center"><i data-lucide="${i}" class="w-5 h-5"></i></div>
+        <p class="relative mt-4 text-lg font-black tracking-tight">${t}</p><p class="relative text-xs font-bold opacity-90 leading-snug">${d}</p></div>`).join('')}
+    </div></div></div>`;
+}
+
+function renderViewer() {
+  const v = $('#viewer'); const it = active();
+  V.unmount();
+  document.body.classList.toggle('viewing', !!it);
+  if (!it) { renderEmpty(v); bindViewer(v); icons(); return; }
+  $('#hdrPaste').classList.replace('hidden','flex');
+  const k = KIND[it.kind];
+  const json = it.kind === 'text' ? jsonOf(it.text) : null;
+  const url = it.kind === 'text' && /^https?:\/\/\S+$/.test(it.text.trim()) ? it.text.trim() : null;
+  const color = it.kind === 'text' && /^(#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})|rgba?\([^)]+\)|hsla?\([^)]+\))$/i.test(it.text.trim()) ? it.text.trim() : null;
+  const showImageTools = it.kind === 'image' || (it.kind === 'html' && state.htmlView === 'image');
+  const showTextTools = it.kind === 'text' || (it.kind === 'html' && state.htmlView === 'text');
+
+  const seg = it.kind === 'html' ? `<div class="flex bg-slate-900/5 dark:bg-white/5 rounded-2xl p-1 gap-1">${[['preview','Aperçu','eye'], ...(it.image?[['image','Image','image']]:[]), ['text','Texte','type'], ['source','Code','code']].map(([kk,l,i]) =>
+      `<button data-view="${kk}" class="btn-press h-9 px-3 rounded-xl inline-flex items-center gap-1.5 text-xs font-black ${state.htmlView===kk?'bg-white dark:bg-slate-700 shadow-sm text-primary':'opacity-70 hover:opacity-100'}"><i data-lucide="${i}" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">${l}</span></button>`).join('')}</div>` : '';
+
+  v.innerHTML = `
+    <div class="shrink-0 p-4 sm:p-5 lg:px-7 lg:pt-6 flex flex-wrap items-center gap-3 border-b border-white/60 dark:border-white/5">
+      <div class="flex items-center gap-3 min-w-0 flex-1 basis-64">
+        <span class="px-3 py-1.5 text-white text-[10px] font-black rounded-xl uppercase tracking-widest border border-white/20 inline-flex items-center gap-1.5 shrink-0" style="background:${k.bg};box-shadow:${k.sh}"><i data-lucide="${fileIcon(it)}" class="w-3.5 h-3.5"></i>${k.label}</span>
+        <div class="min-w-0"><p class="font-black tracking-tight truncate text-base sm:text-lg">${esc(titleOf(it))}</p>
+        <p class="tabular text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">${esc(metaOf(it))} · ${fmtAgo(it.createdAt)}</p></div>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        ${seg}
+        ${showTextTools ? btnIcon('txt-down','a-arrow-down','Texte plus petit') + btnIcon('txt-up','a-arrow-up','Texte plus grand') : ''}
+        ${json ? `<button data-act="json" class="btn-press h-11 px-3 rounded-2xl inline-flex items-center gap-2 font-black text-xs ${state.jsonPretty?'active-item text-primary':'btn-glass'}"><i data-lucide="braces" class="w-4 h-4"></i>JSON</button>` : ''}
+        ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="btn-glass btn-press h-11 px-3 rounded-2xl inline-flex items-center gap-2 font-black text-xs"><i data-lucide="external-link" class="w-4 h-4"></i>Ouvrir le lien</a>` : ''}
+        ${showImageTools ? btnIcon('resize','scaling','Redimensionner') + btnIcon('fs','maximize-2','Plein écran') : ''}
+        ${it.kind !== 'file' ? btnIcon('copy','copy','Recopier') : ''}
+        ${canDownload ? btnIcon('download','download','Enregistrer') : ''}
+        ${btnIcon('delete','trash-2','Supprimer','hover:!text-rose-600')}
+      </div>
+    </div>
+    <div id="content" class="flex-1 min-h-0 relative"></div>`;
+
+  const c = $('#content');
+  if (showImageTools) {
+    const src = it.kind === 'image' ? urlFor(it) : urlFor(it, 'image');
+    V.mount(c, src, it.kind === 'image' ? it.w : it.iw, it.kind === 'image' ? it.h : it.ih);
+  } else if (it.kind === 'text' || (it.kind === 'html' && state.htmlView === 'text')) {
+    c.innerHTML = `${color ? `<div class="px-5 sm:px-8 pt-5"><div class="h-24 rounded-[28px] border border-white/70 dark:border-white/10 shadow-inner" style="background:${esc(color)}"></div></div>` : ''}
+      <pre id="pre" class="absolute ${color?'top-32':'top-0'} inset-x-0 bottom-0 overflow-auto thin-scroll p-5 sm:p-8 font-mono whitespace-pre-wrap break-words text-slate-900 dark:text-slate-100" style="font-size:${state.textSize}px;line-height:1.6"></pre>`;
+    const t = it.text || '';
+    $('#pre', c).textContent = state.jsonPretty ? prettyJson(t) : (t || '(aucun texte brut — voir l\'aperçu)');
+  } else if (it.kind === 'html' && state.htmlView === 'source') {
+    c.innerHTML = `<pre id="pre" class="absolute inset-0 overflow-auto thin-scroll p-5 sm:p-8 font-mono text-xs whitespace-pre-wrap break-all text-slate-700 dark:text-slate-300"></pre>`;
+    $('#pre', c).textContent = it.html;
+  } else if (it.kind === 'html') {
+    const local = /src=["']?file:/i.test(it.html);
+    c.innerHTML = `<div class="absolute inset-0 p-3 sm:p-5 flex flex-col gap-3">
+      ${local ? `<div class="shrink-0 glass-card rounded-2xl px-4 py-3 text-xs font-bold flex items-center gap-2"><i data-lucide="info" class="w-4 h-4 shrink-0" style="color:var(--primary)"></i>Certaines images viennent de fichiers locaux de Word et ne peuvent pas s'afficher ici.${it.image ? ' Le rendu complet est dans l\'onglet « Image ».' : ''}</div>` : ''}
+      <iframe id="frame" sandbox="allow-popups allow-popups-to-escape-sandbox" class="flex-1 w-full rounded-[24px] bg-white border border-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.06)]" title="Aperçu du contenu collé"></iframe></div>`;
+    $('#frame', c).srcdoc = `<base target="_blank"><style>html{background:#fff}body{font-family:Inter,Calibri,system-ui,sans-serif;color:#0f172a;padding:28px;margin:0;font-size:16px;line-height:1.55}img{max-width:100%;height:auto}table{border-collapse:collapse}td,th{border:1px solid #cbd5e1;padding:4px 8px}</style>` + it.html;
+  } else {
+    renderFile(c, it);
+  }
+  bindViewer(v);
+  icons();
+}
+
+async function renderFile(c, it) {
+  const m = it.mime || '', url = urlFor(it);
+  const generic = (msg) => {
+    c.innerHTML = `<div class="absolute inset-0 overflow-y-auto flex items-center justify-center p-6"><div class="tile p-8 sm:p-10 w-full max-w-md text-center" style="background:${KIND.file.bg};box-shadow:${KIND.file.sh}">
+      <div class="grid-pat"></div><div class="tile-orb"></div>
+      <div class="relative w-20 h-20 mx-auto rounded-[28px] bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center anim-float"><i data-lucide="${fileIcon(it)}" class="w-9 h-9"></i></div>
+      <p class="relative mt-6 text-2xl font-black tracking-tight break-words">${esc(it.name)}</p>
+      <p class="relative mt-1 text-sm font-bold opacity-90 tabular">${fmtBytes(it.size)} · ${esc(m || 'type inconnu')}</p>
+      <p class="relative mt-4 text-sm font-medium opacity-90">${msg}</p></div></div>`;
+    icons();
+  };
+  if (m.startsWith('video/')) c.innerHTML = `<div class="absolute inset-0 p-4 flex items-center justify-center bg-black/80"><video src="${url}" controls class="max-w-full max-h-full rounded-2xl"></video></div>`;
+  else if (m.startsWith('audio/')) c.innerHTML = `<div class="absolute inset-0 flex items-center justify-center p-6"><div class="glass-card rounded-[32px] p-8 w-full max-w-lg"><p class="font-black mb-4 truncate">${esc(it.name)}</p><audio src="${url}" controls class="w-full"></audio></div></div>`;
+  else if (m === 'application/pdf') {
+    if (framed) generic('L\'aperçu PDF n\'est pas disponible dans cette fenêtre. Ouvrez Presse-Vue dans son propre onglet pour le lire.');
+    else c.innerHTML = `<iframe src="${url}" class="absolute inset-0 w-full h-full" title="Aperçu PDF"></iframe>`;
+  }
+  else if (m.startsWith('text/') || /json|xml|javascript|csv|markdown|yaml/.test(m) || /\.(txt|md|csv|json|xml|ya?ml|log|ini|js|ts|py|cs|cpp|c|h|java|html|css|sql)$/i.test(it.name)) {
+    if (it.size > 5e6) return generic('Fichier texte trop volumineux pour l\'aperçu.');
+    const t = await it.blob.text();
+    c.innerHTML = `<pre class="absolute inset-0 overflow-auto thin-scroll p-5 sm:p-8 font-mono whitespace-pre-wrap break-words" style="font-size:${state.textSize}px;line-height:1.6"></pre>`;
+    c.firstElementChild.textContent = t;
+  }
+  else generic(framed ? 'Aucun aperçu possible pour ce type de fichier.' : 'Aucun aperçu possible pour ce type — vous pouvez l\'enregistrer.');
+}
+
+function bindViewer(v) {
+  v.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => {
+    const it = active(), a = b.dataset.act;
+    if (a === 'paste') return pasteViaAPI();
+    if (!it) return;
+    if (a === 'copy') copyItem(it);
+    else if (a === 'download') downloadItem(it);
+    else if (a === 'delete') removeItem(it.id);
+    else if (a === 'fs') V.toggleFs();
+    else if (a === 'resize') openResize(it);
+    else if (a === 'json') { state.jsonPretty = !state.jsonPretty; renderViewer(); }
+    else if (a === 'txt-up') { state.textSize = Math.min(48, state.textSize + 2); renderViewer(); }
+    else if (a === 'txt-down') { state.textSize = Math.max(10, state.textSize - 2); renderViewer(); }
+  }));
+  v.querySelectorAll('[data-view]').forEach(b => b.onclick = () => { state.htmlView = b.dataset.view; renderViewer(); });
+}
+
+/* ============ Visionneuse d'image (zoom animé, déplacement, pincement, poignées) ============ */
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const S_MIN = 0.02, S_MAX = 40;
+const V = {
+  stage:null, img:null, frame:null, tag:null, iw:0, ih:0, s:1, tx:0, ty:0, fitS:1, mode:'fit',
+  ptrs:new Map(), pinch:null, fs:false, anim:null, raf:0, last:0, rz:null, settleT:0, tagT:0,
+
+  mount(container, src, w, h) {
+    this.iw = w; this.ih = h; this.mode = 'fit'; this.fs = false; this.ptrs.clear(); this.pinch = null; this.anim = null; this.rz = null;
+    container.innerHTML = `<div id="stage" class="stage checker absolute inset-0 overflow-hidden">
+        <img id="vimg" src="${src}" alt="Contenu collé" draggable="false" decoding="async" style="opacity:0">
+        <div id="rzf" class="rz-frame">${['nw','ne','sw','se'].map(h => `<span class="rz-h" data-h="${h}" aria-hidden="true"></span>`).join('')}</div>
+        <div id="sizetag" class="size-tag absolute left-4 top-4 z-10 glass-panel rounded-2xl px-3 py-2 text-xs font-black tabular"></div>
+        <button data-fsclose class="hidden absolute top-4 right-4 z-10 btn-glass btn-press w-12 h-12 rounded-2xl items-center justify-center" style="top:max(1rem,env(safe-area-inset-top))" aria-label="Quitter le plein écran"><i data-lucide="x" class="w-5 h-5"></i></button>
+        <div class="absolute left-1/2 -translate-x-1/2 bottom-4 z-10 glass-panel rounded-full p-1.5 flex items-center gap-1 shadow-[0_15px_40px_rgba(0,0,0,0.12)]" style="bottom:max(1rem,env(safe-area-inset-bottom))">
+          <button data-z="out" class="btn-press w-11 h-11 rounded-full flex items-center justify-center hover:bg-white/70 dark:hover:bg-white/10" aria-label="Dézoomer"><i data-lucide="zoom-out" class="w-5 h-5"></i></button>
+          <span id="zlabel" class="tabular w-16 text-center text-sm font-black">100 %</span>
+          <button data-z="in" class="btn-press w-11 h-11 rounded-full flex items-center justify-center hover:bg-white/70 dark:hover:bg-white/10" aria-label="Zoomer"><i data-lucide="zoom-in" class="w-5 h-5"></i></button>
+          <span class="w-px h-6 bg-slate-900/10 dark:bg-white/10 mx-1"></span>
+          <button data-z="fit" class="btn-press h-11 px-3 rounded-full text-xs font-black hover:bg-white/70 dark:hover:bg-white/10" title="Ajuster à l'écran (0)">Ajuster</button>
+          <button data-z="one" class="btn-press h-11 px-3 rounded-full text-xs font-black hover:bg-white/70 dark:hover:bg-white/10" title="Taille réelle (1)">1:1</button>
+        </div></div>`;
+    this.stage = $('#stage', container); this.img = $('#vimg', container); this.frame = $('#rzf', container); this.tag = $('#sizetag', container);
+    this.img.style.width = w + 'px'; this.img.style.height = h + 'px';
+    this.bind();
+    const img = this.img;
+    const show = () => { if (this.img !== img) return; this.fit(true); img.style.opacity = '1'; };
+    (img.decode ? img.decode() : Promise.resolve()).then(show, show);
+  },
+  unmount() {
+    cancelAnimationFrame(this.raf); this.raf = 0; clearTimeout(this.settleT); clearTimeout(this.tagT);
+    if (this.fs) document.body.style.overflow = '';
+    this.stage = this.img = this.frame = this.tag = null; this.fs = false; this.anim = null;
+  },
+  rect() { return this.stage.getBoundingClientRect(); },
+  computeFit() { const r = this.rect(), pad = r.width < 600 ? 16 : 40; return Math.max(0.01, Math.min((r.width - pad*2) / this.iw, (r.height - pad*2 - 64) / this.ih, 3)); },
+  centered(s) { const r = this.rect(); return { s, tx:(r.width - this.iw*s) / 2, ty:(r.height - this.ih*s) / 2 - (r.width < 600 ? 24 : 20) }; },
+
+  /* --- Mouvements --- */
+  fit(instant) { if (!this.stage) return; this.fitS = this.computeFit(); this.mode = 'fit'; this.goTo(this.centered(this.fitS), instant); },
+  one() { if (!this.stage) return; this.mode = 'free'; this.goTo(this.centered(1)); },
+  goTo(t, instant) {
+    if (instant || reduceMotion) { this.anim = null; Object.assign(this, { s:t.s, tx:t.tx, ty:t.ty }); this.kick(); return; }
+    this.anim = { type:'free', s:t.s, tx:t.tx, ty:t.ty }; this.kick();
+  },
+  /* Zoom ancré sur un point : la cible s'accumule, l'affichage la rattrape en douceur */
+  zoomBy(f, cx, cy, instant) {
+    const base = this.anim && this.anim.type === 'anchor' ? Math.exp(this.anim.ls) : this.s;
+    const ns = clamp(base * f, S_MIN, S_MAX); this.mode = 'free';
+    if (instant || reduceMotion) { this.anim = null; this.setScaleAt(ns, cx, cy); this.kick(); return; }
+    this.anim = { type:'anchor', ls:Math.log(ns), cx, cy }; this.kick();
+  },
+  zoomCenter(f) { const r = this.rect(); this.zoomBy(f, r.width/2, r.height/2); },
+  setScaleAt(ns, cx, cy) { this.tx = cx - (cx - this.tx) * ns / this.s; this.ty = cy - (cy - this.ty) * ns / this.s; this.s = ns; },
+
+  /* --- Boucle d'affichage : une seule écriture DOM par image --- */
+  kick() { if (!this.raf && this.stage) { this.img && this.img.classList.add('moving'); this.raf = requestAnimationFrame(t => this.step(t)); } },
+  step(t) {
+    this.raf = 0; if (!this.stage) return;
+    const dt = this.last ? Math.min(64, t - this.last) : 16.7; this.last = t;
+    const k = 1 - Math.pow(0.78, dt / 16.7);          // ~22 % du chemin par image à 60 i/s, indépendant du taux de rafraîchissement
+    const a = this.anim;
+    if (a && a.type === 'anchor') {
+      const ls = Math.log(this.s), d = a.ls - ls;
+      const nls = Math.abs(d) < 0.0015 ? a.ls : ls + d * k;
+      this.setScaleAt(Math.exp(nls), a.cx, a.cy);
+      if (nls === a.ls) this.anim = null;
+    } else if (a) {
+      const ls = Math.log(this.s), tl = Math.log(a.s);
+      const done = Math.abs(tl - ls) < 0.0015 && Math.abs(a.tx - this.tx) < 0.4 && Math.abs(a.ty - this.ty) < 0.4;
+      if (done) { this.s = a.s; this.tx = a.tx; this.ty = a.ty; this.anim = null; }
+      else { this.s = Math.exp(ls + (tl - ls) * k); this.tx += (a.tx - this.tx) * k; this.ty += (a.ty - this.ty) * k; }
+    }
+    this.apply();
+    if (this.anim) this.kick();
+    else { this.last = 0; clearTimeout(this.settleT); this.settleT = setTimeout(() => this.img && this.img.classList.remove('moving'), 160); }
+  },
+  apply() {
+    if (!this.img) return;
+    const W = this.iw * this.s, H = this.ih * this.s;
+    this.img.style.transform = `translate3d(${this.tx}px,${this.ty}px,0) scale(${this.s})`;
+    this.img.style.imageRendering = this.s >= 3 ? 'pixelated' : 'auto';
+    this.frame.style.transform = `translate3d(${this.tx}px,${this.ty}px,0)`;
+    this.frame.style.width = W + 'px'; this.frame.style.height = H + 'px';
+    const l = $('#zlabel'); if (l) l.textContent = Math.round(this.s * 100) + ' %';
+    if (this.rz) this.tag.textContent = `${fmtNum(Math.round(W))} × ${fmtNum(Math.round(H))} px · ${Math.round(this.s * 100)} %`;
+  },
+  showTag(on) { clearTimeout(this.tagT); if (on) this.tag.classList.add('on'); else this.tagT = setTimeout(() => this.tag && this.tag.classList.remove('on'), 900); },
+
+  toggleFs() {
+    if (!this.stage) return;
+    this.fs = !this.fs;
+    this.stage.classList.toggle('is-fs', this.fs);
+    const x = this.stage.querySelector('[data-fsclose]'); x.classList.toggle('hidden', !this.fs); x.classList.toggle('flex', this.fs);
+    document.body.style.overflow = this.fs ? 'hidden' : '';
+    requestAnimationFrame(() => this.fit());
+  },
+
+  bind() {
+    const st = this.stage;
+    st.querySelectorAll('[data-z]').forEach(b => b.onclick = e => { e.stopPropagation(); const z = b.dataset.z;
+      if (z === 'in') this.zoomCenter(1.4); else if (z === 'out') this.zoomCenter(1/1.4); else if (z === 'fit') this.fit(); else this.one(); });
+    st.querySelector('[data-fsclose]').onclick = e => { e.stopPropagation(); this.toggleFs(); };
+
+    // Molette / pavé tactile : zoom ancré sous le curseur
+    st.addEventListener('wheel', e => {
+      e.preventDefault(); const r = this.rect();
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      const pinchPad = e.ctrlKey;                       // pincement sur pavé tactile = wheel + ctrlKey
+      this.zoomBy(Math.exp(-dy * (pinchPad ? 0.012 : 0.0022)), e.clientX - r.left, e.clientY - r.top, pinchPad);
+    }, { passive:false });
+
+    // Poignées de redimensionnement (coin opposé fixe, proportions gardées)
+    st.querySelectorAll('.rz-h').forEach(h => {
+      h.addEventListener('pointerdown', e => {
+        e.stopPropagation(); e.preventDefault(); h.setPointerCapture(e.pointerId);
+        const W = this.iw * this.s, H = this.ih * this.s, dir = h.dataset.h;
+        this.rz = { dir, ax: dir.includes('w') ? this.tx + W : this.tx, ay: dir.includes('n') ? this.ty + H : this.ty };
+        this.anim = null; this.mode = 'free'; h.classList.add('on'); this.frame.classList.add('active'); this.showTag(true); this.kick();
+      });
+      h.addEventListener('pointermove', e => {
+        if (!this.rz || !h.hasPointerCapture(e.pointerId)) return;
+        const r = this.rect(), px = e.clientX - r.left, py = e.clientY - r.top, z = this.rz;
+        const dx = Math.max(0, z.dir.includes('w') ? z.ax - px : px - z.ax);
+        const dy = Math.max(0, z.dir.includes('n') ? z.ay - py : py - z.ay);
+        // projection sur la diagonale : redimensionnement continu, sans à-coups entre largeur et hauteur
+        const ns = clamp((dx * this.iw + dy * this.ih) / (this.iw * this.iw + this.ih * this.ih), S_MIN, S_MAX);
+        this.s = ns;
+        this.tx = z.dir.includes('w') ? z.ax - this.iw * ns : z.ax;
+        this.ty = z.dir.includes('n') ? z.ay - this.ih * ns : z.ay;
+        this.kick();
+      });
+      const end = () => { if (!this.rz) return; this.rz = null; h.classList.remove('on'); this.frame && this.frame.classList.remove('active'); this.showTag(false); };
+      h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
+    });
+
+    // Déplacement et pincement
+    const isCtrl = e => e.target.closest('button, .rz-h');
+    st.addEventListener('pointerdown', e => {
+      if (isCtrl(e)) return;
+      st.setPointerCapture(e.pointerId); this.ptrs.set(e.pointerId, { x:e.clientX, y:e.clientY }); st.classList.add('dragging'); this.anim = null;
+      if (this.ptrs.size === 2) { const [a,b] = [...this.ptrs.values()]; this.pinch = { d: Math.hypot(a.x-b.x, a.y-b.y), mx:(a.x+b.x)/2, my:(a.y+b.y)/2 }; }
+    });
+    st.addEventListener('pointermove', e => {
+      if (!this.ptrs.has(e.pointerId) || this.rz) return;
+      const prev = this.ptrs.get(e.pointerId); this.ptrs.set(e.pointerId, { x:e.clientX, y:e.clientY });
+      if (this.ptrs.size === 2 && this.pinch) {
+        const [a,b] = [...this.ptrs.values()], d = Math.hypot(a.x-b.x, a.y-b.y), mx = (a.x+b.x)/2, my = (a.y+b.y)/2, r = this.rect();
+        this.tx += mx - this.pinch.mx; this.ty += my - this.pinch.my;
+        this.setScaleAt(clamp(this.s * d / this.pinch.d, S_MIN, S_MAX), mx - r.left, my - r.top);
+        this.pinch = { d, mx, my };
+      } else if (this.ptrs.size === 1) { this.tx += e.clientX - prev.x; this.ty += e.clientY - prev.y; }
+      this.mode = 'free'; this.kick();
+    });
+    const up = e => { this.ptrs.delete(e.pointerId); if (this.ptrs.size < 2) this.pinch = null; if (!this.ptrs.size) st.classList.remove('dragging'); };
+    st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
+    st.addEventListener('dblclick', e => { if (isCtrl(e)) return; const r = this.rect();
+      if (Math.abs(this.s - this.fitS) < 0.01) this.zoomBy(Math.max(1, this.fitS * 2) / this.s, e.clientX - r.left, e.clientY - r.top); else this.fit(); });
+  }
+};
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (V.stage && V.mode === 'fit') V.fit(true); }, 120); });
+
+/* ============ Redimensionner pour de vrai (nouvelle image en pixels) ============ */
+const MAX_SIDE = 12000;
+async function resizeBlob(blob, w, h, type) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  let done = false;
+  try {
+    const bmp = await createImageBitmap(blob, { resizeWidth:w, resizeHeight:h, resizeQuality:'high' });
+    if (bmp.width === w && bmp.height === h) { g.drawImage(bmp, 0, 0); done = true; }
+    bmp.close && bmp.close();
+  } catch(e) {}
+  if (!done) {   // repli : réduction par paliers de 50 % pour garder la netteté
+    let cur = await createImageBitmap(blob), cw = cur.width, ch = cur.height;
+    while (cw / 2 >= w && ch / 2 >= h) {
+      const t = document.createElement('canvas'); cw = Math.round(cw / 2); ch = Math.round(ch / 2); t.width = cw; t.height = ch;
+      const tg = t.getContext('2d'); tg.imageSmoothingQuality = 'high'; tg.drawImage(cur, 0, 0, cw, ch); cur = t;
+    }
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(cur, 0, 0, w, h);
+  }
+  return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('toBlob')), type, 0.92));
+}
+
+function openResize(it) {
+  const src = it.kind === 'image' ? it.blob : it.image;
+  const ow = it.kind === 'image' ? it.w : it.iw, oh = it.kind === 'image' ? it.h : it.ih;
+  if (!src) return;
+  const r = { w: ow, h: oh, lock: true };
+  const viewPct = V.stage ? Math.round(V.s * 100) : 100;
+  openModal(`<div class="flex items-start justify-between gap-3">
+      <div><h3 class="text-2xl font-black tracking-tight">Redimensionner l'image</h3>
+      <p class="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400 tabular">Originale : ${fmtNum(ow)} × ${fmtNum(oh)} px</p></div>
+      <button data-close class="btn-glass btn-press w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" aria-label="Fermer"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+    <div class="mt-6 text-center"><p id="rzPct" class="text-6xl font-black tracking-tighter tabular">100 %</p>
+      <p id="rzOut" class="mt-1 text-sm font-black tabular text-primary">${fmtNum(ow)} × ${fmtNum(oh)} px</p></div>
+    <input id="rzRange" type="range" class="rng w-full mt-5" min="1" max="400" step="1" value="100" aria-label="Échelle en pourcentage">
+    <div class="mt-4 flex flex-wrap gap-2">${[25,50,75,150,200].map(p => `<button data-p="${p}" class="btn-glass btn-press h-11 px-4 rounded-2xl text-xs font-black tabular">${p} %</button>`).join('')}
+      <button data-p="${viewPct}" class="btn-glass btn-press h-11 px-4 rounded-2xl text-xs font-black">Taille affichée (${viewPct} %)</button></div>
+    <div class="mt-5 grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+      <label class="block"><span class="text-[10px] font-black uppercase tracking-widest opacity-70">Largeur (px)</span>
+        <input id="rzW" type="number" inputmode="numeric" min="1" max="${MAX_SIDE}" value="${ow}" class="num mt-1.5 w-full h-12 rounded-2xl px-4 text-base font-black tabular"></label>
+      <button id="rzLock" class="btn-press w-12 h-12 rounded-2xl flex items-center justify-center active-item" aria-label="Garder les proportions" aria-pressed="true"><i data-lucide="link" class="w-5 h-5"></i></button>
+      <label class="block"><span class="text-[10px] font-black uppercase tracking-widest opacity-70">Hauteur (px)</span>
+        <input id="rzH" type="number" inputmode="numeric" min="1" max="${MAX_SIDE}" value="${oh}" class="num mt-1.5 w-full h-12 rounded-2xl px-4 text-base font-black tabular"></label>
+    </div>
+    <button id="rzCopy" class="btn-primary btn-press mt-7 w-full h-14 rounded-full font-black text-base tracking-wide inline-flex items-center justify-center gap-2"><i data-lucide="copy" class="w-5 h-5"></i><span>Recopier l'image redimensionnée</span></button>
+    <div class="mt-3 grid ${canDownload ? 'grid-cols-2' : 'grid-cols-1'} gap-2">
+      ${canDownload ? `<button id="rzSave" class="btn-glass btn-press h-12 rounded-full font-black text-sm inline-flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Enregistrer</button>` : ''}
+      <button id="rzAdd" class="btn-glass btn-press h-12 rounded-full font-black text-sm inline-flex items-center justify-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i>Ajouter à l'historique</button>
+    </div>`, root => {
+    const rng = $('#rzRange', root), iw = $('#rzW', root), ih = $('#rzH', root), lockB = $('#rzLock', root);
+    const show = (skip) => {
+      const pct = r.w / ow * 100;
+      $('#rzPct', root).textContent = (r.lock ? Math.round(pct) : Math.round(pct)) + ' %';
+      $('#rzOut', root).textContent = `${fmtNum(r.w)} × ${fmtNum(r.h)} px`;
+      if (skip !== 'range') { rng.value = clamp(Math.round(pct), 1, 400); }
+      rng.style.setProperty('--p', ((rng.value - 1) / 399 * 100) + '%');
+      if (skip !== 'w') iw.value = r.w; if (skip !== 'h') ih.value = r.h;
+    };
+    const setPct = p => { r.w = clamp(Math.round(ow * p / 100), 1, MAX_SIDE); r.h = clamp(Math.round(oh * p / 100), 1, MAX_SIDE); };
+    rng.addEventListener('input', () => { setPct(+rng.value); show('range'); });
+    root.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { setPct(+b.dataset.p); show(); });
+    iw.addEventListener('input', () => { const v = clamp(Math.round(+iw.value || 0), 0, MAX_SIDE); if (!v) return; r.w = v; if (r.lock) r.h = clamp(Math.round(v * oh / ow), 1, MAX_SIDE); show('w'); });
+    ih.addEventListener('input', () => { const v = clamp(Math.round(+ih.value || 0), 0, MAX_SIDE); if (!v) return; r.h = v; if (r.lock) r.w = clamp(Math.round(v * ow / oh), 1, MAX_SIDE); show('h'); });
+    [iw, ih].forEach(x => x.addEventListener('blur', () => show()));
+    lockB.onclick = () => { r.lock = !r.lock; lockB.classList.toggle('active-item', r.lock); lockB.classList.toggle('btn-glass', !r.lock); lockB.setAttribute('aria-pressed', r.lock);
+      lockB.innerHTML = `<i data-lucide="${r.lock ? 'link' : 'unlink'}" class="w-5 h-5"></i>`; icons();
+      if (r.lock) { r.h = clamp(Math.round(r.w * oh / ow), 1, MAX_SIDE); show(); } };
+    root.querySelector('[data-close]').onclick = closeModal;
+    show();
+
+    const busy = async (btn, fn) => {
+      const html = btn.innerHTML; btn.disabled = true; btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 spin"></i><span>Redimensionnement…</span>`; icons();
+      try { await fn(); } catch(e) { toast('Le redimensionnement a échoué. Essayez une taille plus petite.', 'error'); }
+      if (btn.isConnected) { btn.disabled = false; btn.innerHTML = html; icons(); }
+    };
+    const keepType = src.type === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+    $('#rzCopy', root).onclick = e => busy(e.currentTarget, async () => {
+      const out = await resizeBlob(src, r.w, r.h, 'image/png');
+      try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': out })]); toast(`Image ${fmtNum(r.w)} × ${fmtNum(r.h)} recopiée — collez-la où vous voulez`); }
+      catch(err) { toast('La copie est bloquée par le navigateur ici. Utilisez « Ajouter à l\'historique » puis Enregistrer, ou ouvrez Presse-Vue dans son propre onglet.', 'error'); }
+    });
+    const save = $('#rzSave', root);
+    if (save) save.onclick = e => busy(e.currentTarget, async () => {
+      const out = await resizeBlob(src, r.w, r.h, keepType);
+      await downloadItem({ kind:'image', blob: out, mime: keepType, name: `presse-vue-${r.w}x${r.h}-${stamp()}.${extFor(keepType)}` });
+    });
+    $('#rzAdd', root).onclick = e => busy(e.currentTarget, async () => {
+      const out = await resizeBlob(src, r.w, r.h, keepType);
+      const ni = { id:uid(), createdAt:Date.now(), kind:'image', blob:out, mime:keepType, size:out.size, w:r.w, h:r.h, name:`Image ${r.w} × ${r.h} (redimensionnée)` };
+      ni.thumb = await makeThumb(out, r.w, r.h);
+      closeModal(); await addItems([ni], ni.id); toast('Image redimensionnée ajoutée à l\'historique');
+    });
+  });
+}
+
+/* ============ Clavier ============ */
+document.addEventListener('keydown', e => {
+  if (e.target.isContentEditable || /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+  if (e.key === 'Escape') { if ($('#modalRoot').innerHTML) return closeModal(); if (V.fs) return V.toggleFs(); }
+  if ($('#modalRoot').innerHTML || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (V.stage) {
+    if (e.key === '+' || e.key === '=') { V.zoomCenter(1.25); e.preventDefault(); }
+    else if (e.key === '-') { V.zoomCenter(0.8); e.preventDefault(); }
+    else if (e.key === '0') V.fit();
+    else if (e.key === '1') V.one();
+    else if (e.key === 'f' || e.key === 'F') V.toggleFs();
+    else if ((e.key === 'r' || e.key === 'R') && active()) openResize(active());
+  }
+  if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && state.items.length && !V.ptrs.size) {
+    const i = state.items.findIndex(x => x.id === state.activeId);
+    const n = state.items[Math.min(state.items.length-1, Math.max(0, i + (e.key === 'ArrowDown' ? 1 : -1)))];
+    if (n && n.id !== state.activeId) { e.preventDefault(); select(n.id); }
+  }
+});
+
+/* ============ Démarrage ============ */
+$('#btnSettings').onclick = openSettings;
+$('#btnClear').onclick = clearAll;
+$('#hdrPaste').onclick = pasteViaAPI;
+setInterval(() => { if (state.items.length) renderHistory(); }, 60000);
+icons();
+renderViewer();
+if (framed && window.claude && typeof window.claude.use === 'function') {
+  window.claude.use('downloads').then(d => { if (d) { dl = d; canDownload = true; if (active()) renderViewer(); } }).catch(() => {});
+}
+loadHistory().then(() => { if (state.items.length && !state.activeId) select(state.items[0].id); });
+}
+</script>
+</body>
+</html>
